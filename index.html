@@ -1,0 +1,126 @@
+<html>
+  <head>
+    <title>THE HOUSE - EARLY ACCESS</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+
+    <script>
+      // --- UNLOCK & EXPIRE TIMER (AUTO-STARTS UPON FIRST RUN) ---
+      AFRAME.registerComponent('ea-glasses-control', {
+        init: function () {
+          const glassesEl = this.el; // The glasses entity
+
+          // --- Step 1: Establish 'Day One' (The First Run Date) ---
+          const dateMarker = localStorage.getItem('TheHouseDayOne');
+          let dayOneDate;
+
+          if (!dateMarker) {
+            // First time ever opening this specific installed copy!
+            dayOneDate = new Date(); // Record this moment as Day One
+            localStorage.setItem('TheHouseDayOne', dayOneDate.toISOString()); // Store it permanently
+            console.log("Welcome! This is Day One of your Early Access clock.");
+          } else {
+            // Not the first run, load the existing start date
+            dayOneDate = new Date(dateMarker);
+            console.log("Welcome back! Loading your existing Early Access start date.");
+          }
+
+          // --- Step 2: Set the Deadline (5 Weeks = 35 Days) ---
+          const msPerDay = 24 * 60 * 60 * 1000; // Milliseconds in one day
+          const deadlineDate = new Date(dayOneDate.getTime() + (35 * msPerDay)); 
+
+          // --- Step 3: Compare Today vs. The Deadline ---
+          const today = new Date();
+
+          if (today > deadlineDate) {
+            // PAST THE DEADLINE: The glasses exist in the code but must be HIDDEN.
+            glassesEl.setAttribute('visible', 'false'); // Instantly invisible
+            console.log("Early Access Time-Lock: Glasses are now EXPIRED and invisible.");
+          } else {
+            // BEFORE THE DEADLINE: The player is within the time limit. Keep them visible!
+            glassesEl.setAttribute('visible', 'true'); // They show by default, but this confirms it.
+            console.log("Early Access Time-Lock: You are within the limit! Glasses visible.");
+          }
+        }
+      });
+
+      // --- TELEPORT & AUDIO SYSTEM ---
+      function stopAllMusic() {
+        var sounds = document.querySelectorAll('a-sound');
+        sounds.forEach(s => { if (s.components.sound) s.components.sound.stopSound(); });
+      }
+      function playMusic(id) {
+        stopAllMusic();
+        const soundEl = document.querySelector(id);
+        if (soundEl && soundEl.components.sound) soundEl.components.sound.playSound();
+      }
+      function goToFloor(x, y, z, audioId) {
+        const rig = document.querySelector('#rig');
+        rig.setAttribute('position', {x: x, y: y, z: z});
+        playMusic(audioId);
+      }
+    </script>
+  </head>
+  <body>
+    <a-scene physics="gravity: -9.8; debug: false">
+      
+      <a-assets>
+        <img id="rocky-brown" src="brown_rock_texture.jpg">
+        <img id="concrete" src="concrete_texture.jpg">
+        <a-asset-item id="glove-model" src="boxing_glove.glb"></a-asset-item>
+        
+        <audio id="lobby-music" src="casual_lobby.mp3" preload="auto"></audio>
+        <audio id="middle-vibes" src="vibing_music.mp3" preload="auto"></audio>
+        <audio id="ventilation-hum" src="vent_hum.mp3" preload="auto"></audio>
+        <audio id="sports-chill" src="sports_chill.mp3" preload="auto"></audio>
+        <audio id="final-countdown" src="final_countdown.mp3" preload="auto"></auto>
+      </a-assets>
+
+      <a-entity id="rig" movement-controls position="0 1.6 0">
+        <a-entity camera look-controls>
+          <a-entity ea-glasses-control id="ea-glasses" position="0 0 -0.1" visible="false">
+            <a-box position="-0.05 0 0" scale="0.04 0.03 0.01" color="cyan" opacity="0.7"></a-box>
+            <a-box position="0.05 0 0" scale="0.04 0.03 0.01" color="cyan" opacity="0.7"></a-box>
+            <a-box position="0 0 0" scale="0.06 0.005 0.01" color="cyan"></a-box>
+            <a-text value="EARLY ACCESS" position="-0.1 0.05 0" scale="0.1 0.1 0.1" color="yellow"></a-text>
+          </a-entity>
+        </a-entity>
+        <a-entity id="leftHand" laser-controls="hand: left" class="hand" static-body></a-entity>
+        <a-entity id="rightHand" laser-controls="hand: right" class="hand" static-body></a-entity>
+      </a-entity>
+
+      <a-sound id="lobby-audio" src="#lobby-music" loop="true" autoplay="true"></a-sound>
+      <a-sound id="middle-audio" src="#middle-vibes" loop="true"></a-sound>
+      <a-sound id="basement-audio" src="#ventilation-hum" loop="true"></a-sound>
+      <a-sound id="sports-audio" src="#sports-chill" loop="true"></a-sound>
+      <a-sound id="final-countdown-audio" src="#final-countdown" loop="false"></a-sound>
+
+      <a-entity position="0 0 0">
+        <a-sky color="#87CEEB"></a-sky>
+        <a-box width="20" height="0.5" depth="20" static-body color="#ccc"></a-box>
+        <a-cylinder position="0 1 -8" radius="0.5" height="2" color="blue" onclick="goToFloor(0, -20, 0, '#middle-audio')"></a-cylinder>
+      </a-entity>
+
+      <a-entity position="0 -20 0">
+        <a-box width="30" height="0.5" depth="30" static-body color="#FFD700"></a-box>
+        <a-cylinder position="0 1 -12" radius="0.5" height="2" color="red" onclick="goToFloor(0, -50, 0, '#basement-audio')"></a-cylinder>
+      </a-entity>
+
+      <a-entity position="0 -50 0">
+        <a-box width="50" height="10" depth="50" material="src: #concrete; side: double" static-body></a-box>
+        <a-box id="fire-monster" color="red" position="10 1 10" scale="2 2 2"></a-box>
+        <a-ring color="cyan" position="5 1.5 -10" radius-inner="1" radius-outer="1.2" onclick="goToFloor(200, -50, 0, '#sports-audio')"></a-ring>
+      </a-entity>
+
+      <a-entity position="200 -50 0">
+        <a-sphere radius="50" material="src: #rocky-brown; side: double; color: #5C4033" roughness="1"></a-sphere>
+        <a-plane static-body rotation="-90 0 0" width="20" height="30" color="#228B22" position="0 0.1 0"></a-plane>
+        <a-sphere id="soccer-ball" soccer-kick dynamic-body="mass: 1" position="0 5 0" radius="0.5" color="white"></a-sphere>
+        <a-box id="boxing-ring" boxing-logic position="25 0.5 0" width="10" depth="10" color="#7B1113" static-body></a-box>
+        <a-plane id="mirror" position="30 2.5 0" rotation="0 -90 0" width="5" height="5" color="#AAA"></a-plane>
+      </a-entity>
+
+    </a-scene>
+  </body>
+</html>
